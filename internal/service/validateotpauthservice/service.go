@@ -11,8 +11,8 @@ import (
 )
 
 type ValidateOTPAuthParam struct {
-	UserID int `json:"user_id"`
-	OTP    int `json:"otp"`
+	UserID int
+	OTP    int
 }
 
 type ValidateOTPAuthRes struct {
