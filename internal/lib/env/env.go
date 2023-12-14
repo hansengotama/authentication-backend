@@ -60,14 +60,12 @@ func GetPostgresDBPassword() string {
 }
 
 func GetOTPExpirationTime() time.Duration {
-	expirationTime := os.Getenv("EXPIRATION_TIME")
-	if expirationTime == "" {
+	expirationTime := os.Getenv("OTP_EXPIRATION_TIME")
+	if expirationTime != "" {
 		duration, err := time.ParseDuration(expirationTime)
 		if err == nil {
 			return duration
 		}
-
-		// logging.Err
 	}
 
 	defaultExpirationTime := 2 * time.Minute

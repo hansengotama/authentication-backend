@@ -3,12 +3,14 @@ package db
 import (
 	"context"
 	"database/sql"
+	"github.com/hansengotama/authentication-backend/internal/domain"
 	"time"
 )
 
 type InsertOTPAuthParam struct {
 	UserID       int
 	OTP          int
+	Status       domain.OTPAuthStatusEnum
 	OTPExpiredAt time.Time
 }
 
@@ -19,7 +21,7 @@ type InsertOTPAuthResponse struct {
 }
 
 type OTPAuthInsertRepositoryInterface interface {
-	Insert(context.Context, InsertOTPAuthParam) (InsertOTPAuthResponse, error)
+	InsertOTPAuth(context.Context, InsertOTPAuthParam) error
 }
 
 type OTPAuthInsertDB struct {
@@ -32,8 +34,8 @@ func NewOTPAuthInsertDB(postgresConn *sql.DB) OTPAuthInsertDB {
 	}
 }
 
-func (s OTPAuthInsertDB) Insert(ctx context.Context, param InsertOTPAuthParam) error {
-	_, err := s.postgresConn.Exec("INSERT INTO otp_auth(user_id, otp, otp_expired_at) VALUES ($1, $2, $3)", param.UserID, param.OTP, param.OTPExpiredAt)
+func (s OTPAuthInsertDB) InsertOTPAuth(ctx context.Context, param InsertOTPAuthParam) error {
+	_, err := s.postgresConn.Exec("INSERT INTO otp_auth(user_id, otp, otp_expired_at, status) VALUES ($1, $2, $3, $4)", param.UserID, param.OTP, param.OTPExpiredAt, param.Status.String())
 	if err != nil {
 		// logging
 		return err

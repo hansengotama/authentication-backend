@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	postgres "github.com/hansengotama/authentication-backend/internal/lib/connection"
 	"github.com/hansengotama/authentication-backend/internal/service/otpauth"
 	"io/ioutil"
@@ -29,24 +30,36 @@ func writeResponse(w http.ResponseWriter, resp HTTPResponse) {
 	}
 }
 
+var ErrReadingRequestBody = errors.New("error reading request body")
+var ErrParsingRequestBody = errors.New("error parsing request body")
+
 func RequestOTP(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "Error reading request body", http.StatusBadRequest)
+		writeResponse(w, HTTPResponse{
+			Code:       http.StatusBadRequest,
+			ErrMessage: ErrReadingRequestBody.Error(),
+		})
 		return
 	}
 
 	var request otpauth.RequestOTPReq
 	err = json.Unmarshal(body, &request)
 	if err != nil {
-		http.Error(w, "Error parsing request body", http.StatusBadRequest)
+		writeResponse(w, HTTPResponse{
+			Code:       http.StatusBadRequest,
+			ErrMessage: ErrParsingRequestBody.Error(),
+		})
 		return
 	}
 
 	s := otpauth.NewAuthRequestService(postgres.GetConnection())
 	res, err := s.Request(r.Context(), request)
 	if err != nil {
-		http.Error(w, "Error on request otp", http.StatusBadRequest)
+		writeResponse(w, HTTPResponse{
+			Code:       http.StatusInternalServerError,
+			ErrMessage: err.Error(),
+		})
 		return
 	}
 
@@ -59,21 +72,30 @@ func RequestOTP(w http.ResponseWriter, r *http.Request) {
 func ValidateOTP(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "Error reading request body", http.StatusBadRequest)
+		writeResponse(w, HTTPResponse{
+			Code:       http.StatusBadRequest,
+			ErrMessage: ErrReadingRequestBody.Error(),
+		})
 		return
 	}
 
 	var request otpauth.ValidateOTPReq
 	err = json.Unmarshal(body, &request)
 	if err != nil {
-		http.Error(w, "Error parsing request body", http.StatusBadRequest)
+		writeResponse(w, HTTPResponse{
+			Code:       http.StatusBadRequest,
+			ErrMessage: ErrParsingRequestBody.Error(),
+		})
 		return
 	}
 
 	s := otpauth.NewAuthValidateService(postgres.GetConnection())
 	res, err := s.Validate(r.Context(), request)
 	if err != nil {
-		http.Error(w, "Error on validate otp", http.StatusBadRequest)
+		writeResponse(w, HTTPResponse{
+			Code:       http.StatusInternalServerError,
+			ErrMessage: err.Error(),
+		})
 		return
 	}
 

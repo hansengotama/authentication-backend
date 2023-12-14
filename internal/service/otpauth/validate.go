@@ -3,8 +3,10 @@ package otpauth
 import (
 	"context"
 	"database/sql"
-	"errors"
+	"github.com/hansengotama/authentication-backend/internal/domain"
+	sqlorder "github.com/hansengotama/authentication-backend/internal/lib/sql"
 	db "github.com/hansengotama/authentication-backend/internal/repository/db/otpauth"
+	"time"
 )
 
 type ValidateOTPReq struct {
@@ -31,19 +33,37 @@ func NewAuthValidateService(postgresConn *sql.DB) OtpAuthValidateServiceInterfac
 }
 
 func (s OtpAuthValidateService) Validate(ctx context.Context, req ValidateOTPReq) (ValidateOTPRes, error) {
-	// get by otp & expired at
 	otpAuthGetDB := db.NewOTPAuthGetDB(s.postgresConn)
-	res, err := otpAuthGetDB.Get(ctx, db.GetParam{
-		UserID:  req.UserID,
-		OTP:     req.OTP,
-		OrderBy: "DESC",
+	res, err := otpAuthGetDB.GetOTPAuth(ctx, db.GetOTPAuthParam{
+		UserID: req.UserID,
+		OTP:    req.OTP,
+		Order: sqlorder.SQLOrder{
+			Column: "created_at",
+			By:     sqlorder.SQLOrderEnumASC,
+		},
 	})
-	if errors.Is(err, sql.ErrNoRows) {
+	if err != nil {
 		return ValidateOTPRes{}, err
 	}
 
+	if res.Status.String() != domain.OTPAuthStatusCreated {
+		return ValidateOTPRes{}, db.ErrGetOTPAuthNotFound
+	}
+
+	otpAuthUpdateDB := db.NewOTPAuthUpdateDB(s.postgresConn)
+	if time.Now().After(res.OTPExpiredAt) {
+		err = otpAuthUpdateDB.UpdateOTPAuthStatus(ctx, db.UpdateOTPAuthStatusParam{ID: res.ID, Status: domain.OTPAuthStatusEnumExpired})
+		if err != nil {
+			// status expired is not automatically updated
+			// logging
+		}
+
+		return ValidateOTPRes{}, db.ErrGetOTPAuthNotFound
+	}
+
+	err = otpAuthUpdateDB.UpdateOTPAuthStatus(ctx, db.UpdateOTPAuthStatusParam{ID: res.ID, Status: domain.OTPAuthStatusEnumValidated})
 	if err != nil {
-		return ValidateOTPRes{}, err
+		// logging
 	}
 
 	return ValidateOTPRes{

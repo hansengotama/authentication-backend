@@ -3,6 +3,7 @@ package otpauth
 import (
 	"context"
 	"database/sql"
+	"github.com/hansengotama/authentication-backend/internal/domain"
 	"github.com/hansengotama/authentication-backend/internal/lib/env"
 	"github.com/hansengotama/authentication-backend/internal/lib/generator"
 	db "github.com/hansengotama/authentication-backend/internal/repository/db/otpauth"
@@ -43,8 +44,9 @@ func (s OtpAuthRequestService) Request(ctx context.Context, req RequestOTPReq) (
 		UserID:       req.UserID,
 		OTP:          otp,
 		OTPExpiredAt: time.Now().Add(env.GetOTPExpirationTime()),
+		Status:       domain.OTPAuthStatusEnumCreated,
 	}
-	err = otpAuthInsertDB.Insert(ctx, param)
+	err = otpAuthInsertDB.InsertOTPAuth(ctx, param)
 	if err != nil {
 		return RequestOTPQueryRes{}, err
 	}

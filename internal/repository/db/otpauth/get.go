@@ -3,18 +3,21 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/hansengotama/authentication-backend/internal/domain"
+	sqlorder "github.com/hansengotama/authentication-backend/internal/lib/sql"
 )
 
-type GetParam struct {
-	UserID  int
-	OTP     int
-	OrderBy string
+type GetOTPAuthParam struct {
+	UserID int
+	OTP    int
+	Status domain.OTPAuthStatusEnum
+	Order  sqlorder.SQLOrder
 }
 
 type OTPAuthGetRepositoryInterface interface {
-	Get(context.Context, GetParam) (domain.OtpAuth, error)
+	GetOTPAuth(context.Context, GetOTPAuthParam) (domain.OtpAuth, error)
 }
 
 type OTPAuthGetDB struct {
@@ -27,11 +30,13 @@ func NewOTPAuthGetDB(postgresConn *sql.DB) OTPAuthGetRepositoryInterface {
 	}
 }
 
-func (s OTPAuthGetDB) Get(ctx context.Context, param GetParam) (domain.OtpAuth, error) {
-	query := "SELECT id, user_id, otp, otp_expired_at, created_at, updated_at from otp_auth"
+var ErrGetOTPAuthNotFound = errors.New("OTP Auth Not Found")
+
+func (s OTPAuthGetDB) GetOTPAuth(ctx context.Context, param GetOTPAuthParam) (domain.OtpAuth, error) {
+	query := "SELECT id, user_id, otp, otp_expired_at, status, created_at, updated_at from otp_auth"
 	str := " WHERE "
 
-	params := []any{}
+	var params []any
 	if param.UserID != 0 {
 		params = append(params, param.UserID)
 		query += str + fmt.Sprintf("user_id = $%d", len(params))
@@ -44,8 +49,14 @@ func (s OTPAuthGetDB) Get(ctx context.Context, param GetParam) (domain.OtpAuth, 
 		str = " AND "
 	}
 
-	if param.OrderBy != "" {
-		query += fmt.Sprintf(" ORDER BY created_at %s", param.OrderBy)
+	if param.Status.IsValid() {
+		params = append(params, param.Status.String())
+		query += str + fmt.Sprintf("status = $%d", len(params))
+		str = " AND "
+	}
+
+	if param.Order.IsValid() {
+		query += fmt.Sprintf(" ORDER BY %s %s", param.Order.Column, param.Order.By.String())
 	}
 
 	query += " LIMIT 1"
@@ -57,11 +68,22 @@ func (s OTPAuthGetDB) Get(ctx context.Context, param GetParam) (domain.OtpAuth, 
 	}
 
 	var otpAuth domain.OtpAuth
+	var status string
 	for rows.Next() {
-		err := rows.Scan(&otpAuth.ID, &otpAuth.UserID, &otpAuth.OTP, &otpAuth.OTPExpiredAt, &otpAuth.CreatedAt, &otpAuth.UpdatedAt)
+		err := rows.Scan(&otpAuth.ID, &otpAuth.UserID, &otpAuth.OTP, &otpAuth.OTPExpiredAt, &status, &otpAuth.CreatedAt, &otpAuth.UpdatedAt)
+
+		otpAuthStatus, err := domain.StringToOTPAuthStatus(status)
+		otpAuth.Status = otpAuthStatus
+
 		if err != nil {
+			// logging
 			return domain.OtpAuth{}, err
 		}
+	}
+
+	isNotFound := otpAuth.ID == 0
+	if isNotFound {
+		return domain.OtpAuth{}, ErrGetOTPAuthNotFound
 	}
 
 	return otpAuth, nil

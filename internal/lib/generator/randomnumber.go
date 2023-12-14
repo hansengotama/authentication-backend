@@ -1,7 +1,7 @@
 package generator
 
 import (
-	"fmt"
+	"errors"
 	"math"
 	"math/rand"
 	"time"
@@ -9,7 +9,7 @@ import (
 
 func RandomNumbers(totalDigit int) (int, error) {
 	if totalDigit <= 0 {
-		return 0, fmt.Errorf("total digit should be a positive integer")
+		return 0, errors.New("total digit should be a positive integer")
 	}
 
 	rand.Seed(time.Now().UnixNano())
