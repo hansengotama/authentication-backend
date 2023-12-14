@@ -56,8 +56,15 @@ func (s ValidateOTPAuthService) ValidateOTPAuthService(ctx context.Context, para
 		return ValidateOTPAuthRes{}, getotpauthdb.ErrGetOTPAuthNotFound
 	}
 
-	if time.Now().After(res.OTPExpiredAt) {
-		err = s.dependency.UpdateOTPAuthDB.UpdateOTPAuthStatus(ctx, postgresConn, updateotpstatusauth.UpdateOTPAuthStatusParam{ID: res.ID, Status: domain.OTPAuthStatusEnumExpired})
+	isOTPExpired := time.Now().After(res.OTPExpiredAt)
+	if isOTPExpired {
+		err = s.dependency.UpdateOTPAuthDB.UpdateOTPAuthStatus(
+			ctx,
+			postgresConn,
+			updateotpstatusauth.UpdateOTPAuthStatusParam{
+				ID:     res.ID,
+				Status: domain.OTPAuthStatusEnumExpired,
+			})
 		if err != nil {
 			// status expired is not automatically updated
 			// logging
@@ -66,7 +73,13 @@ func (s ValidateOTPAuthService) ValidateOTPAuthService(ctx context.Context, para
 		return ValidateOTPAuthRes{}, getotpauthdb.ErrGetOTPAuthNotFound
 	}
 
-	err = s.dependency.UpdateOTPAuthDB.UpdateOTPAuthStatus(ctx, postgresConn, updateotpstatusauth.UpdateOTPAuthStatusParam{ID: res.ID, Status: domain.OTPAuthStatusEnumValidated})
+	err = s.dependency.UpdateOTPAuthDB.UpdateOTPAuthStatus(
+		ctx,
+		postgresConn,
+		updateotpstatusauth.UpdateOTPAuthStatusParam{
+			ID:     res.ID,
+			Status: domain.OTPAuthStatusEnumValidated,
+		})
 	if err != nil {
 		// logging
 	}

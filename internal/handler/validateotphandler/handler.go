@@ -2,17 +2,36 @@ package validateotphandler
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/hansengotama/authentication-backend/internal/lib/httphelper"
 	"github.com/hansengotama/authentication-backend/internal/repository/db/getotpauthdb"
 	"github.com/hansengotama/authentication-backend/internal/repository/db/updateotpstatusauth"
 	"github.com/hansengotama/authentication-backend/internal/service/validateotpauthservice"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 )
 
 type ValidateOTPAuthBody struct {
 	UserID int `json:"user_id"`
 	OTP    int `json:"otp"`
+}
+
+func (r ValidateOTPAuthBody) Validate() error {
+	if r.UserID <= 0 {
+		return errors.New("user id should be a positive integer")
+	}
+
+	if r.OTP <= 0 {
+		return errors.New("otp should be a positive integer")
+	}
+
+	otpStr := strconv.Itoa(r.OTP)
+	if len(otpStr) != 5 {
+		return errors.New("otp must have 5 digits")
+	}
+
+	return nil
 }
 
 func (r ValidateOTPAuthBody) ToServiceParam() validateotpauthservice.ValidateOTPAuthParam {

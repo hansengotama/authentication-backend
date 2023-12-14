@@ -2,6 +2,7 @@ package requestotphandler
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/hansengotama/authentication-backend/internal/lib/httphelper"
 	"github.com/hansengotama/authentication-backend/internal/repository/db/insertotpauthdb"
 	"github.com/hansengotama/authentication-backend/internal/service/requestotpauthservice"
@@ -11,6 +12,14 @@ import (
 
 type RequestOTPAuthBody struct {
 	UserID int `json:"user_id"`
+}
+
+func (r RequestOTPAuthBody) Validate() error {
+	if r.UserID <= 0 {
+		return errors.New("user id should be a positive integer")
+	}
+
+	return nil
 }
 
 func (r RequestOTPAuthBody) ToServiceParam() requestotpauthservice.RequestOTPAuthParam {
