@@ -66,7 +66,7 @@ func HandleValidateOTPAuth(w http.ResponseWriter, r *http.Request) {
 		UpdateOTPAuthDB: updateotpstatusauth.UpdateOTPAuthStatusDB{},
 	}
 	s := validateotpauthservice.NewValidateOTPAuthService(dep)
-	res, err := s.ValidateOTPAuthService(r.Context(), request.ToServiceParam())
+	res, err := s.ValidateOTPAuth(r.Context(), request.ToServiceParam())
 	if err != nil {
 		httphelper.Response(w, httphelper.HTTPResponse{
 			Code:       http.StatusInternalServerError,

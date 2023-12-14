@@ -20,24 +20,24 @@ type RequestOTPAuthRes struct {
 }
 
 type RequestOTPAuthServiceInterface interface {
-	RequestOTPAuthService(context.Context, RequestOTPAuthParam) (RequestOTPAuthRes, error)
+	RequestOTPAuth(context.Context, RequestOTPAuthParam) (RequestOTPAuthRes, error)
 }
 
 type RequestOTPAuthService struct {
-	dependency Dependency
+	Dependency Dependency
 }
 
 type Dependency struct {
-	InsertOTPAuthDB insertotpauthdb.InsertOTPAuthDB
+	InsertOTPAuthDB insertotpauthdb.InsertOTPAuthDBInterface
 }
 
 func NewRequestOTPAuthService(dependency Dependency) RequestOTPAuthServiceInterface {
 	return RequestOTPAuthService{
-		dependency: dependency,
+		Dependency: dependency,
 	}
 }
 
-func (s RequestOTPAuthService) RequestOTPAuthService(ctx context.Context, param RequestOTPAuthParam) (RequestOTPAuthRes, error) {
+func (s RequestOTPAuthService) RequestOTPAuth(ctx context.Context, param RequestOTPAuthParam) (RequestOTPAuthRes, error) {
 	otp, err := generator.RandomNumbers(5)
 	if err != nil {
 		return RequestOTPAuthRes{}, err
@@ -50,7 +50,7 @@ func (s RequestOTPAuthService) RequestOTPAuthService(ctx context.Context, param 
 		OTPExpiredAt: time.Now().Add(env.GetOTPExpirationTime()),
 		Status:       domain.OTPAuthStatusEnumCreated,
 	}
-	err = s.dependency.InsertOTPAuthDB.InsertOTPAuth(ctx, postgresConn, dbParam)
+	err = s.Dependency.InsertOTPAuthDB.InsertOTPAuth(ctx, postgresConn, dbParam)
 	if err != nil {
 		return RequestOTPAuthRes{}, err
 	}

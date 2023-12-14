@@ -20,27 +20,27 @@ type ValidateOTPAuthRes struct {
 }
 
 type ValidateOTPAuthServiceInterface interface {
-	ValidateOTPAuthService(context.Context, ValidateOTPAuthParam) (ValidateOTPAuthRes, error)
+	ValidateOTPAuth(context.Context, ValidateOTPAuthParam) (ValidateOTPAuthRes, error)
 }
 
 type ValidateOTPAuthService struct {
-	dependency Dependency
+	Dependency Dependency
 }
 
 type Dependency struct {
-	GetOTPAuthDB    getotpauthdb.GetOTPAuthDB
-	UpdateOTPAuthDB updateotpstatusauth.UpdateOTPAuthStatusDB
+	GetOTPAuthDB    getotpauthdb.GetOTPAuthDBInterface
+	UpdateOTPAuthDB updateotpstatusauth.UpdateOTPAuthStatusDBInterface
 }
 
 func NewValidateOTPAuthService(dependency Dependency) ValidateOTPAuthServiceInterface {
 	return ValidateOTPAuthService{
-		dependency: dependency,
+		Dependency: dependency,
 	}
 }
 
-func (s ValidateOTPAuthService) ValidateOTPAuthService(ctx context.Context, param ValidateOTPAuthParam) (ValidateOTPAuthRes, error) {
+func (s ValidateOTPAuthService) ValidateOTPAuth(ctx context.Context, param ValidateOTPAuthParam) (ValidateOTPAuthRes, error) {
 	postgresConn := postgres.GetConnection()
-	res, err := s.dependency.GetOTPAuthDB.GetOTPAuth(ctx, postgresConn, getotpauthdb.GetOTPAuthParam{
+	res, err := s.Dependency.GetOTPAuthDB.GetOTPAuth(ctx, postgresConn, getotpauthdb.GetOTPAuthParam{
 		UserID: param.UserID,
 		OTP:    param.OTP,
 		Order: sqlorder.SQLOrder{
@@ -58,7 +58,7 @@ func (s ValidateOTPAuthService) ValidateOTPAuthService(ctx context.Context, para
 
 	isOTPExpired := time.Now().After(res.OTPExpiredAt)
 	if isOTPExpired {
-		err = s.dependency.UpdateOTPAuthDB.UpdateOTPAuthStatus(
+		err = s.Dependency.UpdateOTPAuthDB.UpdateOTPAuthStatus(
 			ctx,
 			postgresConn,
 			updateotpstatusauth.UpdateOTPAuthStatusParam{
@@ -73,7 +73,7 @@ func (s ValidateOTPAuthService) ValidateOTPAuthService(ctx context.Context, para
 		return ValidateOTPAuthRes{}, getotpauthdb.ErrGetOTPAuthNotFound
 	}
 
-	err = s.dependency.UpdateOTPAuthDB.UpdateOTPAuthStatus(
+	err = s.Dependency.UpdateOTPAuthDB.UpdateOTPAuthStatus(
 		ctx,
 		postgresConn,
 		updateotpstatusauth.UpdateOTPAuthStatusParam{

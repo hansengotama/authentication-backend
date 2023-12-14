@@ -3,6 +3,7 @@ package generator
 import (
 	"errors"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"strconv"
 	"testing"
 )
@@ -22,21 +23,14 @@ func Test_GenerateRandomNumbers(t *testing.T) {
 		t.Run(fmt.Sprintf("Total digits: %d", tc.totalDigits), func(t *testing.T) {
 			generatedNum, err := RandomNumbers(tc.totalDigits)
 			if tc.expectedErr != nil {
-				if err.Error() != tc.expectedErr.Error() {
-					t.Errorf("Unmatch error: %v with :%v", err, tc.expectedErr)
-				}
-
+				assert.Error(t, err)
+				assert.EqualError(t, err, tc.expectedErr.Error())
 				return
 			}
 
-			if err != nil {
-				t.Errorf("Error encountered: %v", err)
-			}
-
 			generatedNumStr := strconv.Itoa(generatedNum)
-			if len(generatedNumStr) != tc.totalDigits {
-				t.Errorf("Generated number %s does not have %d digits", generatedNumStr, tc.totalDigits)
-			}
+			assert.Equal(t, tc.totalDigits, len(generatedNumStr))
+			assert.NoError(t, err)
 		})
 	}
 }

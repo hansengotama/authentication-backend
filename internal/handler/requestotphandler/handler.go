@@ -52,7 +52,7 @@ func HandleRequestOTPAuth(w http.ResponseWriter, r *http.Request) {
 		InsertOTPAuthDB: insertotpauthdb.InsertOTPAuthDB{},
 	}
 	s := requestotpauthservice.NewRequestOTPAuthService(dep)
-	res, err := s.RequestOTPAuthService(r.Context(), request.ToServiceParam())
+	res, err := s.RequestOTPAuth(r.Context(), request.ToServiceParam())
 	if err != nil {
 		httphelper.Response(w, httphelper.HTTPResponse{
 			Code:       http.StatusInternalServerError,
