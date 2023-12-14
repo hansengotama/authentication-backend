@@ -1,11 +1,11 @@
-package db
+package getotpauthdb
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/hansengotama/authentication-backend/internal/domain"
+	"github.com/hansengotama/authentication-backend/internal/lib/postgres"
 	sqlorder "github.com/hansengotama/authentication-backend/internal/lib/sql"
 )
 
@@ -16,23 +16,15 @@ type GetOTPAuthParam struct {
 	Order  sqlorder.SQLOrder
 }
 
-type OTPAuthGetRepositoryInterface interface {
-	GetOTPAuth(context.Context, GetOTPAuthParam) (domain.OtpAuth, error)
+type GetOTPAuthDBInterface interface {
+	GetOTPAuth(context.Context, postgres.SQLExecutor, GetOTPAuthParam) (domain.OtpAuth, error)
 }
 
-type OTPAuthGetDB struct {
-	postgresConn *sql.DB
-}
-
-func NewOTPAuthGetDB(postgresConn *sql.DB) OTPAuthGetRepositoryInterface {
-	return OTPAuthGetDB{
-		postgresConn: postgresConn,
-	}
-}
+type GetOTPAuthDB struct{}
 
 var ErrGetOTPAuthNotFound = errors.New("OTP Auth Not Found")
 
-func (s OTPAuthGetDB) GetOTPAuth(ctx context.Context, param GetOTPAuthParam) (domain.OtpAuth, error) {
+func (s GetOTPAuthDB) GetOTPAuth(ctx context.Context, executor postgres.SQLExecutor, param GetOTPAuthParam) (domain.OtpAuth, error) {
 	query := "SELECT id, user_id, otp, otp_expired_at, status, created_at, updated_at from otp_auth"
 	str := " WHERE "
 
@@ -61,25 +53,23 @@ func (s OTPAuthGetDB) GetOTPAuth(ctx context.Context, param GetOTPAuthParam) (do
 
 	query += " LIMIT 1"
 
-	rows, err := s.postgresConn.Query(query, params...)
+	row := executor.QueryRowContext(ctx, query, params...)
+	if row.Err() != nil {
+		// logging
+		return domain.OtpAuth{}, row.Err()
+	}
+
+	var otpAuth domain.OtpAuth
+	var status string
+
+	err := row.Scan(&otpAuth.ID, &otpAuth.UserID, &otpAuth.OTP, &otpAuth.OTPExpiredAt, &status, &otpAuth.CreatedAt, &otpAuth.UpdatedAt)
 	if err != nil {
 		// logging
 		return domain.OtpAuth{}, err
 	}
 
-	var otpAuth domain.OtpAuth
-	var status string
-	for rows.Next() {
-		err := rows.Scan(&otpAuth.ID, &otpAuth.UserID, &otpAuth.OTP, &otpAuth.OTPExpiredAt, &status, &otpAuth.CreatedAt, &otpAuth.UpdatedAt)
-
-		otpAuthStatus, err := domain.StringToOTPAuthStatus(status)
-		otpAuth.Status = otpAuthStatus
-
-		if err != nil {
-			// logging
-			return domain.OtpAuth{}, err
-		}
-	}
+	otpAuthStatus, err := domain.StringToOTPAuthStatus(status)
+	otpAuth.Status = otpAuthStatus
 
 	isNotFound := otpAuth.ID == 0
 	if isNotFound {

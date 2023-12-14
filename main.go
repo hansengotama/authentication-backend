@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	postgres "github.com/hansengotama/authentication-backend/internal/lib/connection"
+	postgres "github.com/hansengotama/authentication-backend/internal/lib/postgres"
 	"log"
 	"net/http"
 	"os"
