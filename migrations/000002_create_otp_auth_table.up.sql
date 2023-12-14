@@ -1,0 +1,9 @@
+CREATE TABLE otp_auth (
+  id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL,
+  otp INT NOT NULL,
+  otp_expired_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
