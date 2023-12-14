@@ -1,9 +1,16 @@
 package otpauth
 
-import "context"
+import (
+	"context"
+	"database/sql"
+	"github.com/hansengotama/authentication-backend/internal/lib/env"
+	"github.com/hansengotama/authentication-backend/internal/lib/generator"
+	db "github.com/hansengotama/authentication-backend/internal/repository/db/otpauth"
+	"time"
+)
 
 type RequestOTPReq struct {
-	UserID int
+	UserID int `json:"user_id"`
 }
 
 type RequestOTPQueryRes struct {
@@ -15,12 +22,35 @@ type OtpAuthRequestServiceInterface interface {
 	Request(context.Context, RequestOTPReq) (RequestOTPQueryRes, error)
 }
 
-type OtpAuthRequestService struct{}
-
-func NewAuthRequestService() OtpAuthRequestServiceInterface {
-	return OtpAuthRequestService{}
+type OtpAuthRequestService struct {
+	postgresConn *sql.DB
 }
 
-func (s OtpAuthRequestService) Request(context.Context, RequestOTPReq) (RequestOTPQueryRes, error) {
-	return RequestOTPQueryRes{}, nil
+func NewAuthRequestService(postgresConn *sql.DB) OtpAuthRequestServiceInterface {
+	return OtpAuthRequestService{
+		postgresConn: postgresConn,
+	}
+}
+
+func (s OtpAuthRequestService) Request(ctx context.Context, req RequestOTPReq) (RequestOTPQueryRes, error) {
+	otp, err := generator.RandomNumbers(5)
+	if err != nil {
+		return RequestOTPQueryRes{}, err
+	}
+
+	otpAuthInsertDB := db.NewOTPAuthInsertDB(s.postgresConn)
+	param := db.InsertOTPAuthParam{
+		UserID:       req.UserID,
+		OTP:          otp,
+		OTPExpiredAt: time.Now().Add(env.GetOTPExpirationTime()),
+	}
+	err = otpAuthInsertDB.Insert(ctx, param)
+	if err != nil {
+		return RequestOTPQueryRes{}, err
+	}
+
+	return RequestOTPQueryRes{
+		UserID: req.UserID,
+		OTP:    otp,
+	}, nil
 }

@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func randomNumbers(totalDigit int) (int, error) {
+func RandomNumbers(totalDigit int) (int, error) {
 	if totalDigit <= 0 {
 		return 0, fmt.Errorf("total digit should be a positive integer")
 	}

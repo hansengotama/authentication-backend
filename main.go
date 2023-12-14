@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	postgres "github.com/hansengotama/authentication-backend/internal/lib/connection"
 	"log"
 	"net/http"
 	"os"
@@ -51,6 +52,7 @@ func initServer(httpHandler http.Handler) {
 	// Blocks until we receive graceful shutdown signal
 	<-c
 
+	postgres.CloseConnection()
 	cancel()
 	<-ctx.Done()
 

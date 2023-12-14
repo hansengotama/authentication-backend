@@ -11,11 +11,8 @@ func initRoutes() http.Handler {
 	r := chi.NewRouter()
 
 	r.Route("/auth-otp", func(r chi.Router) {
-		r.Get("/request", handler.RequestOTP)
-
-		r.Get("/verify", func(writer http.ResponseWriter, request *http.Request) {
-
-		})
+		r.Post("/request", handler.RequestOTP)
+		r.Post("/validate", handler.ValidateOTP)
 	})
 
 	return r
