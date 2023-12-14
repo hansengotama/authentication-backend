@@ -2,6 +2,7 @@ package getotpauthdb
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/hansengotama/authentication-backend/internal/domain"
@@ -63,6 +64,11 @@ func (s GetOTPAuthDB) GetOTPAuth(ctx context.Context, executor postgres.SQLExecu
 	var status string
 
 	err := row.Scan(&otpAuth.ID, &otpAuth.UserID, &otpAuth.OTP, &otpAuth.OTPExpiredAt, &status, &otpAuth.CreatedAt, &otpAuth.UpdatedAt)
+	isNotFound := errors.Is(err, sql.ErrNoRows)
+	if isNotFound {
+		return domain.OtpAuth{}, ErrGetOTPAuthNotFound
+	}
+
 	if err != nil {
 		// logging
 		return domain.OtpAuth{}, err
@@ -70,11 +76,6 @@ func (s GetOTPAuthDB) GetOTPAuth(ctx context.Context, executor postgres.SQLExecu
 
 	otpAuthStatus, err := domain.StringToOTPAuthStatus(status)
 	otpAuth.Status = otpAuthStatus
-
-	isNotFound := otpAuth.ID == 0
-	if isNotFound {
-		return domain.OtpAuth{}, ErrGetOTPAuthNotFound
-	}
 
 	return otpAuth, nil
 }
